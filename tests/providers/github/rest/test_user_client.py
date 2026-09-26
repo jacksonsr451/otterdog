@@ -18,7 +18,7 @@ async def test_user_resolution(method_name, argument, expected_url, expected_res
         assert url == expected_url
         if method_name == "get_user_ids":
             return {"id": 123, "node_id": "user-node-id"}
-        return {"login": "alice"}
+        return {"login": "alice", "id": 123, "node_id": "user-node-id"}
 
     client = UserClient(stub(requester=stub(request_json=request_json)))
 
@@ -37,3 +37,15 @@ async def test_user_resolution_translates_github_error(method_name, argument):
 
     with pytest.raises(RuntimeError, match="failed retrieving user"):
         await getattr(client, method_name)(argument)
+
+
+async def test_get_user_login_missing_login_uses_existing_key_error_behavior():
+    async def request_json(method, url):
+        assert method == "GET"
+        assert url == "/user/123"
+        return {"id": 123, "node_id": "user-node-id"}
+
+    client = UserClient(stub(requester=stub(request_json=request_json)))
+
+    with pytest.raises(KeyError, match="login"):
+        await client.get_user_login(123)
